@@ -7,7 +7,7 @@ resource "aws_instance" "server_demo" {
       key_name = aws_key_pair.server_demo_ssh.key_name
 
       # Bootstrap completo de la instancia
-      user_data = file("${path.module}/../../scripts/bootstrap.sh")
+      user_data = file("${path.module}../../../scripts/bootstrap.sh")
 
     tags = {
       name = var.name_tag
