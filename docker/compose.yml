@@ -1,0 +1,10 @@
+services:
+  app:
+    build: ./react-app
+    context: .
+    dockerfile: ./docker/dockerfile
+    workdir: /the/workdir/path
+    volumes:
+      - ./react-app/package-lock.json:/the/workdir/path/
+      - ./react-app/tsconfig.app.json /the/workdir/path/
+      - ./react-app/vite.config.ts:/the/workdir/path/
