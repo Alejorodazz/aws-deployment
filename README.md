@@ -1,93 +1,142 @@
 # AWS Deployment
 
-Proyecto orientado a la automatización de infraestructura en AWS mediante IaC, flujos CI/CD y Bash scripting para acelerar el aprovisionamiento, la configuración inicial y la futura operación del entorno.
+Repositorio enfocado en automatizar despliegues de infraestructura en AWS mediante Infraestructura como Código, pipelines CI/CD y Bash scripting para el bootstrap de servidores.
 
-## Objetivo del proyecto
+## Objetivo
 
-Construir una base de despliegue reproducible para AWS que permita:
+Construir una base reproducible de despliegue que permita:
 
-- Definir infraestructura como código con Terraform.
-- Automatizar validaciones, builds y despliegues con pipelines CI/CD.
-- Usar Bash scripting para el bootstrap de servidores y la instalación de componentes base.
-- Dejar una estructura reutilizable para ambientes de laboratorio, pruebas y evolución hacia producción.
+- Aprovisionar infraestructura en AWS con Terraform.
+- Separar configuraciones por ambientes.
+- Automatizar la configuración inicial del servidor con Bash.
+- Preparar el proyecto para validación y despliegue continuo con GitHub Actions.
 
-## Status actual del proyecto
+## Estado actual
 
 Estado documentado al 27 de agosto de 2026.
 
-### 1. Infraestructura como código (IaC)
+### IaC con Terraform
 
-Actualmente el repositorio ya cuenta con una base funcional en Terraform dentro de `infraestructure/` para aprovisionar recursos en AWS:
+La capa de infraestructura ya evolucionó desde una definición plana a una estructura modular por ambientes dentro de `infraestructure/`.
+
+Hoy existen estos bloques principales:
+
+- `modules/`: módulo reutilizable con la definición base de red y cómputo.
+- `environments/testing/`: composición del módulo para ambiente de pruebas.
+- `environments/production/`: composición del módulo para ambiente productivo.
+
+El módulo actual incluye:
 
 - Provider AWS configurado por variables.
 - VPC principal.
 - Subred pública.
-- Subred privada.
 - Internet Gateway.
-- Tabla de rutas pública y asociación.
-- Security Group con reglas para SSH, HTTP y HTTPS.
-- Key Pair para acceso a la instancia.
+- Tabla de rutas pública.
+- Security Group para SSH, HTTP y HTTPS.
+- Key Pair para acceso a EC2.
 - Instancia EC2 `server_demo`.
-- Outputs para IP pública, tipo de instancia y bloque CIDR de la VPC.
+- Outputs de red e instancia.
 
-En este momento, la instancia EC2 consume un script Bash vía `user_data` para instalar Nginx al momento del aprovisionamiento.
+La EC2 utiliza `user_data` para ejecutar el bootstrap del sistema operativo durante el aprovisionamiento.
 
-### 2. Bash scripting
+### Bash scripting
 
-La carpeta `scripts/` ya define la intención de automatizar la configuración inicial del servidor:
+La automatización del servidor ya está más avanzada y hoy se apoya en estos scripts:
 
-- `03_nginx_install.sh`: instala, habilita y arranca Nginx.
-- `01_install_dependencies.sh`: incluye una base inicial para actualización del sistema e instalación de dependencias.
-- `02_dev_tools.sh`: creado pero aún sin contenido.
-- `bootstrap.sh`: creado pero aún sin contenido.
+- `scripts/01_install_dependencies.sh`: actualiza el sistema e instala dependencias base.
+- `scripts/02_dev_tools.sh`: instala herramientas operativas y de desarrollo.
+- `scripts/03_nginx_install.sh`: instala y habilita Nginx.
+- `scripts/bootstrap.sh`: orquesta el bootstrap completo, registra logs y valida que el entorno sea Ubuntu con `apt`.
 
-Esto indica que el proyecto ya empezó a integrar aprovisionamiento declarativo con configuración automatizada del sistema operativo, aunque los scripts todavía están en fase inicial.
+En el estado actual, `bootstrap.sh` es el punto de entrada principal del aprovisionamiento de la instancia.
 
-### 3. Pipelines CI/CD
+### CI/CD
 
-La estructura de GitHub Actions ya existe en `.github/workflows/`, pero su implementación todavía está incompleta:
+La estructura de pipelines ya existe en `.github/workflows/`, pero todavía no está implementada a nivel funcional:
 
-- `CI.yml`: pipeline base generado, hoy solo ejecuta pasos de ejemplo.
-- `deploy-production.yml`: archivo placeholder para despliegue a producción.
-- `infraestructure.yml`: archivo creado, actualmente vacío.
+- `CI.yml`: workflow base de ejemplo generado por GitHub Actions.
+- `deploy-production.yml`: placeholder para el flujo de despliegue a producción.
+- `infraestructure.yml`: archivo creado, aún sin jobs configurados.
 
-Conclusión: el pipeline está planteado a nivel estructural, pero aún no automatiza validación de Terraform, linting, testing, build ni despliegues reales.
+Esto significa que la automatización de integración y despliegue todavía está pendiente, aunque la base del repositorio ya está preparada para integrarla.
 
-### 4. Componentes complementarios
+### Componentes complementarios
 
-El repositorio también incluye piezas de soporte que todavía están en evolución:
-
-- `react-app/`: aplicación base con React + Vite.
-- `docker/`: archivos iniciales para contenerización.
-
-Por ahora, estos componentes funcionan más como base de trabajo que como una solución cerrada e integrada con la infraestructura.
-
-## Estado general resumido
-
-El proyecto ya tiene una dirección técnica clara y una primera implementación de IaC en AWS. La parte más avanzada hoy es Terraform, seguida por el uso inicial de Bash para bootstrap. La capa de CI/CD aún está en etapa de diseño y necesita completarse para cerrar el ciclo de automatización.
-
-## Objetivo inmediato
-
-Las siguientes metas consolidan el alcance actual del repositorio:
-
-1. Completar los scripts de bootstrap para dejar la instancia lista automáticamente.
-2. Formalizar pipelines de CI para validar Terraform, scripts y frontend.
-3. Crear pipelines de CD para desplegar infraestructura de forma controlada por ambiente.
-4. Mejorar la integración entre infraestructura, aplicación y contenedores.
-5. Evolucionar el proyecto desde un laboratorio funcional hacia una base operativa más cercana a producción.
-
-## Estructura principal
+## Estructura del proyecto
 
 ```text
 .
-|-- .github/workflows/      # Pipelines CI/CD
-|-- infraestructure/        # Terraform para AWS
-|-- scripts/                # Bash scripting para bootstrap
-|-- docker/                 # Base de contenedorización
-|-- react-app/              # Aplicación frontend de ejemplo
+|-- .github/
+|   `-- workflows/                 # Pipelines CI/CD
+|-- infraestructure/
+|   |-- environments/
+|   |   |-- production/            # Terraform para producción
+|   |   `-- testing/               # Terraform para pruebas
+|   `-- modules/                   # Módulo reutilizable de infraestructura
+|-- scripts/                       # Bootstrap y aprovisionamiento del servidor
 `-- README.md
 ```
 
-## Resumen ejecutivo
+## Flujo de trabajo actual
 
-Este repositorio documenta un proyecto en desarrollo para montar infraestructura en AWS con enfoque DevOps. Ya existe una base de Terraform para levantar red y cómputo, junto con primeros scripts Bash para configuración del servidor. El siguiente paso clave es completar la automatización CI/CD para convertir esta base en un flujo de despliegue repetible, validable y escalable.
+El enfoque actual del proyecto sigue esta secuencia:
+
+1. Seleccionar un ambiente en `infraestructure/environments/`.
+2. Ejecutar Terraform usando el módulo común ubicado en `infraestructure/modules/`.
+3. Crear la infraestructura base en AWS.
+4. Lanzar una instancia EC2 que ejecuta `scripts/bootstrap.sh` mediante `user_data`.
+5. Dejar el servidor con dependencias base, herramientas operativas y Nginx instalado.
+
+## Ejecución de Terraform por ambiente
+
+Ejemplo para ambiente de pruebas:
+
+```bash
+cd infraestructure/environments/testing
+terraform init
+terraform plan -var-file="test.tfvars"
+terraform apply -var-file="test.tfvars"
+```
+
+Ejemplo para ambiente de producción:
+
+```bash
+cd infraestructure/environments/production
+terraform init
+terraform plan -var-file="prod.tfvars"
+terraform apply -var-file="prod.tfvars"
+```
+
+## Variables y configuración
+
+La infraestructura utiliza variables para definir:
+
+- Región AWS.
+- Credenciales de acceso.
+- AMI por ambiente.
+- Tipo de instancia por ambiente.
+- Tags de proyecto, equipo, entorno y propiedad.
+
+Los valores específicos por ambiente se encuentran actualmente en:
+
+- `infraestructure/environments/testing/test.tfvars`
+- `infraestructure/environments/production/prod.tfvars`
+
+## Status resumido por componente
+
+- `Terraform`: implementado y modularizado.
+- `Ambientes testing/production`: creados.
+- `Bootstrap Bash`: implementado de forma inicial y funcional.
+- `Nginx`: automatizado en el bootstrap.
+- `CI/CD`: estructura creada, implementación pendiente.
+
+## Siguientes pasos recomendados
+
+1. Completar los workflows de GitHub Actions para validar Terraform, scripts y frontend.
+2. Definir manejo seguro de credenciales y estado remoto de Terraform.
+3. Ajustar diferencias entre ambientes más allá del tipo de instancia y la AMI.
+4. Añadir validaciones, linting y políticas de despliegue antes de producción.
+
+## Resumen
+
+El proyecto ya cuenta con una base real para desplegar infraestructura en AWS usando Terraform modular, separación por ambientes y bootstrap automático con Bash. El siguiente salto de madurez planificado es cerrar la capa de CI/CD y endurecer la operación de infraestructura para ambientes más cercanos a producción.
