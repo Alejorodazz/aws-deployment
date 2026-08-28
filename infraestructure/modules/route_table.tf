@@ -2,9 +2,7 @@
 resource "aws_internet_gateway" "main" {
   vpc_id = aws_vpc.main.id
 
-  tags = {
-    Name = "devops-lab-igw"
-  }
+  tags = var.common_tags
 }
 
 resource "aws_route_table" "public" {
@@ -15,9 +13,7 @@ resource "aws_route_table" "public" {
     gateway_id = aws_internet_gateway.main.id
   }
 
-  tags = {
-    Name = "devops-lab-public-rt"
-  }
+  tags = var.common_tags
 }
 
 resource "aws_route_table_association" "public" {

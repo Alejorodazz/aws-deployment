@@ -1,0 +1,14 @@
+infraestructure/.terraform/providers/registry.terraform.io/hashicorp/aws/6.61.0/windows_386/terraform-provider-aws_v6.61.0_x5.exe
+infraestructure/environments/production/.terraform.lock.hcl
+infraestructure/environments/production/.terraform.tfstate.lock.info
+infraestructure/environments/production/.terraform/providers/
+infraestructure/environments/production/terraform.tfstate
+infraestructure/environments/production/terraform.tfstate.backup
+infraestructure/environments/testing/.terraform.lock.hcl
+infraestructure/environments/testing/.terraform/providers/
+infraestructure/environments/testing/terraform.tfstate
+infraestructure/environments/testing/terraform.tfstate.backup
+infraestructure/modules/terraform.tfstate
+infraestructure/modules/terraform.tfstate.backup
+server_demo.key
+server_demo.key.pub

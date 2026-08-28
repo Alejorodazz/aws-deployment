@@ -1,6 +1,6 @@
-module "server_web_testing" {
+module "server-web-testing" {
   source = "../../modules"
 
-  ami_id = var.ami_id_test
-  instance_type = var.instance_type_test
+  ec2_config = var.ec2_config_test
+  common_tags = var.common_tags_test
 }

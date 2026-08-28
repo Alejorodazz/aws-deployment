@@ -12,3 +12,4 @@ output "VPC_main_block-CDIR" {
     description = "Descripción de bloque CDIR aplicadas a VPC"
     value = aws_vpc.main.cidr_block
 }
+

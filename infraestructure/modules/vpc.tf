@@ -1,10 +1,8 @@
 #Creación de VPC
 resource "aws_vpc" "main" {
-  cidr_block           = "10.0.0.0/16"
-  enable_dns_support   = true
-  enable_dns_hostnames = true
+  cidr_block           = var.VPC_config.cidr_block
+  enable_dns_support   = var.VPC_config.enable_dns_support 
+  enable_dns_hostnames = var.VPC_config.enable_dns_hostnames
 
-  tags = {
-    Name = "devops-lab-vpc"
-  }
+  tags = var.common_tags
 }

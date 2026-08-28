@@ -21,54 +21,133 @@ variable "aws_secret_access_key" {
 
 # ------------------------------------------------
 
-# variables para instancias ec2 para grupo Developers ---------------------
+# variables para instancias ec2 ---------------------
 
-variable "ami_id" {
-  description = "Imagen para la creación de instancia"
-  default = "ami-052355af2a014bd2c"
-}
+variable "ec2_config" {
+  type = object({
+    ami_id = string
+    instance_type = string
 
-variable "instance_type" {
-  description = "Tipo de instancia"
-  default = "t3.medium"
+    #configuracion de almacenamiento de instancias
+    volume_size = number
+    volume_type = string
+  })
+
 }
 
 ## tags para instancias ec2 -------------
 
-variable "name_tag" {
-  description = "Etiqueta de nombre para instancias ec2"
-  default = "devops_lab"
+variable "common_tags" {
+  type = map(string)
+
+  default = {
+    "name" = "devops_lab"
+    "environment" = "test"
+    "owner" = "alejandrorodas003@gmail.com"
+    "team" = "Devops team"
+    "project" = "aws-deployment"
+  }
 }
 
-variable "environment_tag" {
-  description = "Etiqueta de entorno para instancias ec2"
-  default = "test"
-}
-
-variable "owner_tag" {
-  description = "Etiqueta de dueño para instancias ec2"
-  default = "alejandrorodas003@gmail"
-}
-
-variable "team_tag" {
-  description = "Etiqueta de equipo para instancias ec2"
-  default = "Devops Team"
-}
-
-variable "project_tag" {
-  description = "Etiqueta de proyecto para instancias ec2"
-  default = "aws-deployment"
-}
 
 ## ------------------------------------------------------
 
 # --------------------------------------------------
 
 # variables para VPC -------------------------
+variable "VPC_config" {
+  type = object({
+    cidr_block           = string
+    enable_dns_support   = bool
+    enable_dns_hostnames = bool
+  })
 
+  default = {
+    cidr_block           = "10.0.0.0/16"
+    enable_dns_support   = true
+    enable_dns_hostnames = true
+  }
+  
+}
 
+variable "subnet_publics_config" {
+  type = object({
+    cidr_block              = string
+    availability_zone       = string
+    map_public_ip_on_launch = bool
+  })
 
-## tags para VPS ---------------------------
-## -------------------------------------------
+  default= {
+    cidr_block              = "10.0.1.0/24"
+    availability_zone       = "us-east-1a"
+    map_public_ip_on_launch = true
+ }
+  
+}
+# -------------------------------------------------
+# Security Groups ---------------------------------
 
+variable "security_groups_config_ssh" {
+  type = object({
+    from_port   = number
+    to_port     = number
+    protocol    = string
+    cidr_blocks = list(string)
+  })
+
+  default = {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+variable "security_groups_config_HTTP" {
+  type = object({
+    from_port   = number
+    to_port     = number
+    protocol    = string
+    cidr_blocks = list(string)
+  })
+
+  default = {
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+variable "security_groups_config_HTTPS" {
+  type = object({
+    from_port   = number
+    to_port     = number
+    protocol    = string
+    cidr_blocks = list(string)
+  })
+
+  default = {
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
+
+variable "security_groups_config_egress" {
+  type = object({
+    from_port   = number
+    to_port     = number
+    protocol    = string
+    cidr_blocks = list(string)
+  })
+
+  default = {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+}
 # -------------------------------------------------
