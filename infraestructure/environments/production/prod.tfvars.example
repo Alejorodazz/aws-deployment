@@ -1,0 +1,59 @@
+ec2_config_prod = {
+    # Configuración base
+    ami_id = "ami-052355af2a014bd2c"
+    instance_type = "t3.medium"
+
+    # Configuración de almacenamiento
+    volume_size = 20
+    volume_type = "gp3"
+  }
+
+  common_tags_prod = {
+    "name" = "devops_lab"
+    "environment" = "test"
+    "owner" = "alejandrorodas003@gmail.com"
+    "team" = "Devops team"
+    "project" = "aws-deployment"
+  }
+
+ # availability_zones = ["us-east-1a" , "us-east-1b"]
+
+ VPC_config = {
+    cidr_block           = "10.0.0.0/16"
+    enable_dns_support   = true
+    enable_dns_hostnames = true
+ }
+
+ subnet_publics_config_prod = {
+    cidr_block              = "10.0.1.0/24"
+    availability_zone       = "us-east-1a"
+    map_public_ip_on_launch = true
+ }
+
+ security_groups_config_ssh = {
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+ }
+
+ security_groups_config_HTTP = {
+     from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+ }
+
+ security_groups_config_HTTPS = {
+     from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+ }
+
+ security_groups_config_egress = {
+     from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+ }

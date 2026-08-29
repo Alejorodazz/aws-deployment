@@ -10,5 +10,7 @@ infraestructure/environments/testing/terraform.tfstate
 infraestructure/environments/testing/terraform.tfstate.backup
 infraestructure/modules/terraform.tfstate
 infraestructure/modules/terraform.tfstate.backup
+test.tfvars
+prod.tfvars
 server_demo.key
 server_demo.key.pub
