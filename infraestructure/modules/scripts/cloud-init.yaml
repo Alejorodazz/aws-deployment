@@ -1,0 +1,45 @@
+#cloud-config
+
+# Bootstrap de configuración para instancias con distribución Ubuntu
+package_update: true
+package_upgrade: true
+package_reboot_if_required: true
+
+packages:
+  - apt-transport-https
+  - bash-completion
+  - ca-certificates
+  - curl
+  - git
+  - docker.io
+  - gnupg
+  - htop
+  - jq
+  - nano
+  - neovim
+  - neofetch
+  - net-tools
+  - nginx
+  - software-properties-common
+  - tree
+  - unzip
+  - wget
+  - zip
+
+users:
+  - default
+  - name: admin
+    gecos: Instance Administrator
+    groups:
+      - sudo
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    lock_passwd: true
+
+runcmd:
+  # Levantar servicio web
+  - systemctl enable nginx
+  - systemctl restart nginx
+  - nginx -t
+
+final_message: "cloud-init completed after $UPTIME seconds."
