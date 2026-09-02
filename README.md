@@ -1,95 +1,106 @@
 # AWS Deployment
 
-Repositorio enfocado en automatizar despliegues de infraestructura en AWS mediante Infraestructura como Código, pipelines CI/CD y Bash scripting para el bootstrap de servidores.
+Proyecto de automatizacion para aprovisionar una instancia web en AWS. La base actual utiliza Terraform para definir infraestructura y `cloud-init` con ficheros YAML para configurar la instancia EC2. El objetivo es completar este flujo con pipelines CI/CD.
 
-## Objetivo
+## Objetivo del proyecto
 
-Construir una base reproducible de despliegue que permita:
+Construir un proceso reproducible de despliegue que permita:
 
-- Aprovisionar infraestructura en AWS con Terraform.
-- Separar configuraciones por ambientes.
-- Automatizar la configuración inicial del servidor con Bash.
-- Preparar el proyecto para validación y despliegue continuo con GitHub Actions.
+- Aprovisionar infraestructura AWS con Infraestructura como Codigo (IaC).
+- Mantener configuraciones separadas para `testing` y `production`.
+- Configurar una instancia Ubuntu de forma automatica.
+- Validar y desplegar los cambios desde GitHub Actions.
+- Centralizar el bootstrap del servidor en ficheros YAML de `cloud-init`.
 
 ## Estado actual
 
-Estado documentado al 27 de agosto de 2026.
+Actualizado: 1 de septiembre de 2026.
 
-### IaC con Terraform
+| Componente | Estado | Implementacion actual |
+| --- | --- | --- |
+| IaC | Implementado | Terraform modular para red, seguridad, clave SSH e instancia EC2. |
+| Ambientes | Implementado parcialmente | Existen composiciones para `testing` y `production`. |
+| Bootstrap | Implementado | `cloud-init` instala paquetes, crea un usuario administrador y habilita Nginx. |
+| Provisionamiento | Implementado | La configuracion del servidor se define con `cloud-init` en ficheros YAML. |
+| CI/CD | Pendiente | Los workflows existen, pero aun no validan ni despliegan infraestructura. |
+| Estado remoto y secretos | Pendiente | El backend remoto y la gestion segura de secretos no estan configurados. |
 
-La capa de infraestructura ya evolucionó desde una definición plana a una estructura modular por ambientes dentro de `infraestructure/`.
+## Infraestructura implementada
 
-Hoy existen estos bloques principales:
+El modulo ubicado en `infraestructure/modules/` crea los siguientes recursos en AWS:
 
-- `modules/`: módulo reutilizable con la definición base de red y cómputo.
-- `environments/testing/`: composición del módulo para ambiente de pruebas.
-- `environments/production/`: composición del módulo para ambiente productivo.
+- VPC con soporte DNS habilitado.
+- Subred publica, Internet Gateway y tabla de rutas publica.
+- Security Group con entrada para SSH (22), HTTP (80) y HTTPS (443).
+- Key Pair de EC2 a partir de `server_demo.key.pub`.
+- Instancia EC2 con IP publica.
+- Outputs de IP publica, tipo de instancia y CIDR de la VPC.
 
-El módulo actual incluye:
+La configuracion inicial de la EC2 se entrega mediante `user_data_base64` y el archivo [cloud-init.yaml](</C:/Users/Usuario/APISYS/PROYECTOS DE INFRAESTRUCTURA/aws-deployment/infraestructure/modules/scripts/cloud-init.yaml>). En una imagen Ubuntu, este instala herramientas base, Docker, Git y Nginx; crea el usuario `admin`; y habilita y reinicia el servicio Nginx.
 
-- Provider AWS configurado por variables.
-- VPC principal.
-- Subred pública.
-- Internet Gateway.
-- Tabla de rutas pública.
-- Security Group para SSH, HTTP y HTTPS.
-- Key Pair para acceso a EC2.
-- Instancia EC2 `server_demo`.
-- Outputs de red e instancia.
+## Arquitectura cloud
 
-La EC2 utiliza `user_data` para ejecutar el bootstrap del sistema operativo durante el aprovisionamiento.
+La siguiente maqueta representa la arquitectura creada por el modulo Terraform para cada ambiente. El trafico web entra desde Internet hacia la instancia EC2 ubicada en una subred publica; `cloud-init` completa la configuracion de Ubuntu al iniciar la instancia.
 
-### Bash scripting
+```mermaid
+flowchart LR
+    user[Usuario o administrador]
+    internet((Internet))
+    key[Clave publica SSH]
+    cloudinit[cloud-init YAML]
 
-La automatización del servidor ya está más avanzada y hoy se apoya en estos scripts:
+    subgraph aws[AWS]
+        subgraph vpc[VPC 10.0.0.0/16]
+            igw[Internet Gateway]
+            routes[Tabla de rutas publica]
 
-- `scripts/01_install_dependencies.sh`: actualiza el sistema e instala dependencias base.
-- `scripts/02_dev_tools.sh`: instala herramientas operativas y de desarrollo.
-- `scripts/03_nginx_install.sh`: instala y habilita Nginx.
-- `scripts/bootstrap.sh`: orquesta el bootstrap completo, registra logs y valida que el entorno sea Ubuntu con `apt`.
+            subgraph subnet[Subred publica 10.0.1.0/24]
+                sg[Security Group\nSSH 22 - HTTP 80 - HTTPS 443]
+                ec2[EC2 server_demo\nUbuntu + Nginx + Docker]
+            end
+        end
+    end
 
-En el estado actual, `bootstrap.sh` es el punto de entrada principal del aprovisionamiento de la instancia.
+    user -->|SSH 22| internet
+    internet -->|HTTP 80 / HTTPS 443| igw
+    igw --> routes
+    routes --> sg
+    sg --> ec2
+    key -. autentica acceso SSH .-> ec2
+    cloudinit -. user_data al iniciar .-> ec2
+```
 
-### CI/CD
+El Security Group permite actualmente SSH, HTTP y HTTPS desde Internet. Esta apertura debe restringirse antes de utilizar el entorno como produccion.
 
-La estructura de pipelines ya existe en `.github/workflows/`, pero todavía no está implementada a nivel funcional:
+## Ambientes
 
-- `CI.yml`: workflow base de ejemplo generado por GitHub Actions.
-- `deploy-production.yml`: placeholder para el flujo de despliegue a producción.
-- `infraestructure.yml`: archivo creado, aún sin jobs configurados.
+| Ambiente | Punto de entrada | Variables de ejemplo |
+| --- | --- | --- |
+| Testing | `infraestructure/environments/testing/main.tf` | `test.tefvars.example` |
+| Production | `infraestructure/environments/production/main.tf` | `prod.tfvars.example` |
 
-Esto significa que la automatización de integración y despliegue todavía está pendiente, aunque la base del repositorio ya está preparada para integrarla.
+Cada ambiente invoca el modulo comun y define su configuracion de instancia mediante un objeto que contiene AMI, tipo y parametros de volumen. Los ejemplos de variables son plantillas: deben copiarse a un archivo `.tfvars` ignorado por Git y adaptarse al ambiente.
 
-### Componentes complementarios
-
-## Estructura del proyecto
+## Estructura
 
 ```text
 .
-|-- .github/
-|   `-- workflows/                 # Pipelines CI/CD
+|-- .github/workflows/                 # Definiciones iniciales de GitHub Actions
 |-- infraestructure/
 |   |-- environments/
-|   |   |-- production/            # Terraform para producción
-|   |   `-- testing/               # Terraform para pruebas
-|   `-- modules/                   # Módulo reutilizable de infraestructura
-|-- scripts/                       # Bootstrap y aprovisionamiento del servidor
+|   |   |-- production/                 # Composicion Terraform de produccion
+|   |   `-- testing/                    # Composicion Terraform de pruebas
+|   `-- modules/                        # Recursos AWS reutilizables y cloud-init
+|       `-- scripts/cloud-init.yaml     # Bootstrap de Ubuntu
+|-- server_demo.key.pub                 # Clave publica para EC2 (local, no versionada)
 `-- README.md
 ```
 
-## Flujo de trabajo actual
+## Uso de Terraform
 
-El enfoque actual del proyecto sigue esta secuencia:
+Prerequisitos: Terraform instalado, una cuenta AWS con permisos para crear los recursos descritos y credenciales disponibles mediante `AWS_ACCESS_KEY_ID` y `AWS_SECRET_ACCESS_KEY`. La clave publica `server_demo.key.pub` debe estar disponible en la raiz del proyecto.
 
-1. Seleccionar un ambiente en `infraestructure/environments/`.
-2. Ejecutar Terraform usando el módulo común ubicado en `infraestructure/modules/`.
-3. Crear la infraestructura base en AWS.
-4. Lanzar una instancia EC2 que ejecuta `scripts/bootstrap.sh` mediante `user_data`.
-5. Dejar el servidor con dependencias base, herramientas operativas y Nginx instalado.
-
-## Ejecución de Terraform por ambiente
-
-Ejemplo para ambiente de pruebas:
+Ejemplo para `testing`:
 
 ```bash
 cd infraestructure/environments/testing
@@ -98,7 +109,7 @@ terraform plan -var-file="test.tfvars"
 terraform apply -var-file="test.tfvars"
 ```
 
-Ejemplo para ambiente de producción:
+Ejemplo para `production`:
 
 ```bash
 cd infraestructure/environments/production
@@ -107,36 +118,38 @@ terraform plan -var-file="prod.tfvars"
 terraform apply -var-file="prod.tfvars"
 ```
 
-## Variables y configuración
+Revise siempre el resultado de `terraform plan` antes de aplicar cambios. La eliminacion de recursos debe ejecutarse de forma explicita y solo cuando corresponda:
 
-La infraestructura utiliza variables para definir:
+```bash
+terraform destroy -var-file="test.tfvars"
+```
 
-- Región AWS.
-- Credenciales de acceso.
-- AMI por ambiente.
-- Tipo de instancia por ambiente.
-- Tags de proyecto, equipo, entorno y propiedad.
+## CI/CD: objetivo
 
-Los valores específicos por ambiente se encuentran actualmente en:
+El directorio `.github/workflows/` contiene los puntos de partida para los pipelines:
 
-- `infraestructure/environments/testing/test.tfvars`
-- `infraestructure/environments/production/prod.tfvars`
+- `CI.yml` se ejecuta en `push` y `pull_request` sobre `master`, pero actualmente solo imprime mensajes de ejemplo.
+- `infraestructure.yml` esta vacio.
+- `deploy-production.yml` es un placeholder.
 
-## Status resumido por componente
+La implementacion esperada es un pipeline que ejecute `terraform fmt -check`, `terraform validate` y `terraform plan` en cambios de infraestructura; que requiera aprobacion antes de `terraform apply` en produccion; y que tome las credenciales desde GitHub Secrets u OIDC, nunca desde archivos `.tfvars` versionados.
 
-- `Terraform`: implementado y modularizado.
-- `Ambientes testing/production`: creados.
-- `Bootstrap Bash`: implementado de forma inicial y funcional.
-- `Nginx`: automatizado en el bootstrap.
-- `CI/CD`: estructura creada, implementación pendiente.
+## Provisionamiento con cloud-init
 
-## Siguientes pasos recomendados
+El proyecto no utilizara Bash scripting para el aprovisionamiento. Toda la configuracion de las instancias se mantendra en ficheros YAML de `cloud-init` dentro de `infraestructure/modules/scripts/`. Esta estrategia concentra la definicion del sistema operativo, paquetes, usuarios y servicios en artefactos declarativos y versionados junto con la infraestructura.
 
-1. Completar los workflows de GitHub Actions para validar Terraform, scripts y frontend.
-2. Definir manejo seguro de credenciales y estado remoto de Terraform.
-3. Ajustar diferencias entre ambientes más allá del tipo de instancia y la AMI.
-4. Añadir validaciones, linting y políticas de despliegue antes de producción.
+## Consideraciones antes de produccion
 
-## Resumen
+- El estado de Terraform se mantiene localmente; falta configurar un backend remoto con bloqueo de estado.
+- Las reglas de SSH permiten acceso desde `0.0.0.0/0`; deben restringirse a redes o rangos autorizados.
+- Los entornos comparten varios valores de red y seguridad; falta parametrizarlos y diferenciarlos de forma efectiva por ambiente.
+- La configuracion de volumen se declara en las variables, pero el recurso EC2 aun no la aplica.
+- Antes de automatizar despliegues, deben corregirse y validarse las rutas de la clave publica y toda la configuracion con `terraform validate` y `terraform plan`.
 
-El proyecto ya cuenta con una base real para desplegar infraestructura en AWS usando Terraform modular, separación por ambientes y bootstrap automático con Bash. El siguiente salto de madurez planificado es cerrar la capa de CI/CD y endurecer la operación de infraestructura para ambientes más cercanos a producción.
+## Proximos pasos
+
+1. Corregir y validar la configuracion Terraform de ambos ambientes.
+2. Configurar backend remoto y autenticacion AWS segura.
+3. Ampliar y validar los ficheros YAML de `cloud-init` segun las necesidades de cada ambiente.
+4. Implementar validacion de Terraform y de los YAML en pull requests.
+5. Crear un despliegue productivo con aprobacion y control de cambios.
