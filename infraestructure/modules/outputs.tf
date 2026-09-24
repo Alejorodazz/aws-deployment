@@ -1,15 +1,20 @@
-output "server_demo_public-ip" {
-    description = "IP pública de la instancia servidor demo"
-    value = aws_instance.server_demo.public_ip
+output "load_balancer_dns_name" {
+  description = "Nombre DNS público del balanceador de carga de la aplicación."
+  value       = aws_lb.app.dns_name
 }
 
-output "server_demo_type-instance" {
-    description = "Tipo de instancia de mi EC2"
-    value = aws_instance.server_demo.instance_type
+output "ecr_repository_url" {
+  description = "URL del repositorio utilizado por las imágenes de la aplicación."
+  value       = aws_ecr_repository.app.repository_url
 }
 
-output "VPC_main_block-CDIR" {
-    description = "Descripción de bloque CDIR aplicadas a VPC"
-    value = aws_vpc.main.cidr_block
+output "rds_endpoint" {
+  description = "Endpoint privado de la base de datos MySQL."
+  value       = aws_db_instance.main.endpoint
+  sensitive   = true
 }
 
+output "vpc_id" {
+  description = "ID de la VPC creada para este ambiente."
+  value       = aws_vpc.main.id
+}

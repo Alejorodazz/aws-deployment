@@ -1,30 +1,13 @@
 #cloud-config
-
-# Bootstrap de configuración para instancias con distribución Ubuntu
 package_update: true
 package_upgrade: true
 package_reboot_if_required: true
 
 packages:
-  - apt-transport-https
-  - bash-completion
   - ca-certificates
   - curl
-  - git
   - docker.io
-  - gnupg
-  - htop
-  - jq
-  - nano
-  - neovim
-  - neofetch
-  - net-tools
   - nginx
-  - software-properties-common
-  - tree
-  - unzip
-  - wget
-  - zip
 
 users:
   - default
@@ -37,7 +20,8 @@ users:
     lock_passwd: true
 
 runcmd:
-  # Levantar servicio web
+  - systemctl enable docker
+  - systemctl start docker
   - systemctl enable nginx
   - systemctl restart nginx
   - nginx -t

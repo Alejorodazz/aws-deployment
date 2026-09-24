@@ -1,59 +1,56 @@
-ec2_config_prod = {
-    # Configuración base
-    ami_id = "ami-052355af2a014bd2c"
-    instance_type = "t3.medium"
+aws_region = "us-east-1"
 
-    # Configuración de almacenamiento
-    volume_size = 20
-    volume_type = "gp3"
+infrastructure_config = {
+  name_prefix = "demo-prod"
+  tags        = { Environment = "production", Owner = "platform-team", Project = "aws-deployment" }
+  vpc         = { cidr_block = "10.1.0.0/16", enable_dns_support = true, enable_dns_hostnames = true }
+
+  public_subnets = {
+    use1a = { cidr_block = "10.1.0.0/24", availability_zone = "us-east-1a", map_public_ip_on_launch = false }
+    use1b = { cidr_block = "10.1.1.0/24", availability_zone = "us-east-1b", map_public_ip_on_launch = false }
+  }
+  private_app_subnets = {
+    use1a = { cidr_block = "10.1.10.0/24", availability_zone = "us-east-1a", map_public_ip_on_launch = false }
+    use1b = { cidr_block = "10.1.11.0/24", availability_zone = "us-east-1b", map_public_ip_on_launch = false }
+  }
+  private_data_subnets = {
+    use1a = { cidr_block = "10.1.20.0/24", availability_zone = "us-east-1a", map_public_ip_on_launch = false }
+    use1b = { cidr_block = "10.1.21.0/24", availability_zone = "us-east-1b", map_public_ip_on_launch = false }
   }
 
-  common_tags_prod = {
-    "name" = "devops_lab"
-    "environment" = "test"
-    "owner" = "alejandrorodas003@gmail.com"
-    "team" = "Devops team"
-    "project" = "aws-deployment"
+  network = {
+    internet_route_cidr    = "0.0.0.0/0"
+    nat_gateway_subnet_key = "use1a"
+    nat_allocation_domain  = "vpc"
   }
 
- # availability_zones = ["us-east-1a" , "us-east-1b"]
+  alb = {
+    name = "demo-prod-alb", internal = false, load_balancer_type = "application", ip_address_type = "ipv4"
+    idle_timeout = 60, enable_deletion_protection = true, listener_port = 443, listener_protocol = "HTTPS"
+    listener_certificate_arn = "replace-with-an-acm-certificate-arn", listener_ssl_policy = "ELBSecurityPolicy-TLS13-1-2-2021-06"
+    target_group_name = "demo-prod-app", target_port = 80, target_protocol = "HTTP", target_type = "instance"
+    health_check_path = "/", health_check_matcher = "200-399", health_check_interval = 30, health_check_timeout = 5
+    healthy_threshold = 2, unhealthy_threshold = 2
+    ingress_rules = [{ description = "HTTP desde Internet", from_port = 80, to_port = 80, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }]
+  }
 
- VPC_config = {
-    cidr_block           = "10.0.0.0/16"
-    enable_dns_support   = true
-    enable_dns_hostnames = true
- }
+  compute = {
+    launch_template_name = "demo-prod-template", ami_id = "ami-052355af2a014bd2c", instance_type = "t3.small"
+    key_name = "replace-with-existing-key-pair", associate_public_ip = false, monitoring_enabled = true, ebs_optimized = true
+    volume_device_name = "/dev/sda1", volume_size = 20, volume_type = "gp3", volume_delete_on_terminate = true, volume_encrypted = true
+    asg_name = "demo-prod-asg", min_size = 2, max_size = 4, desired_capacity = 2, health_check_type = "ELB"
+    health_check_grace_period = 300, app_port = 80, app_protocol = "tcp"
+  }
 
- subnet_publics_config_prod = {
-    cidr_block              = "10.0.1.0/24"
-    availability_zone       = "us-east-1a"
-    map_public_ip_on_launch = true
- }
+  rds = {
+    identifier = "demo-prod-mysql", engine = "mysql", engine_version = "8.0", instance_class = "db.t3.micro"
+    allocated_storage = 20, max_allocated_storage = 100, storage_type = "gp3", storage_encrypted = true
+    db_name = "application", username = "appadmin", port = 3306, multi_az = true
+    publicly_accessible = false, backup_retention_period = 7, backup_window = "03:00-04:00", maintenance_window = "sun:04:00-sun:05:00"
+    skip_final_snapshot = false, deletion_protection = true, apply_immediately = false
+  }
 
- security_groups_config_ssh = {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
- }
-
- security_groups_config_HTTP = {
-     from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
- }
-
- security_groups_config_HTTPS = {
-     from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
- }
-
- security_groups_config_egress = {
-     from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
- }
+  ecr        = { repository_name = "demo-prod-app", image_tag_mutability = "IMMUTABLE", scan_on_push = true, force_delete = false }
+  cloudflare = { enabled = false, zone_id = "", record_name = "app", proxied = true, ttl = 1 }
+}
+rds_password = "replace-with-a-secret"

@@ -1,153 +1,139 @@
 variable "aws_region" {
-  description = "Region de AWS para deploys"
+  description = "Región de AWS donde se despliega la infraestructura."
   type        = string
-  default     = "us-east-1"
 }
 
-# Variables de usuario IAM --------------
-variable "aws_access_key_id" {
-  description = "IAM access key ID. AWS_ACCESS_KEY_ID"
+variable "infrastructure_config" {
+  description = "Configuración completa de la infraestructura específica por ambiente."
+
+  type = object({
+    name_prefix = string
+    tags        = map(string)
+
+    vpc = object({
+      cidr_block           = string
+      enable_dns_support   = bool
+      enable_dns_hostnames = bool
+    })
+
+    public_subnets = map(object({
+      cidr_block              = string
+      availability_zone       = string
+      map_public_ip_on_launch = bool
+    }))
+
+    private_app_subnets = map(object({
+      cidr_block              = string
+      availability_zone       = string
+      map_public_ip_on_launch = bool
+    }))
+
+    private_data_subnets = map(object({
+      cidr_block              = string
+      availability_zone       = string
+      map_public_ip_on_launch = bool
+    }))
+
+    network = object({
+      internet_route_cidr    = string
+      nat_gateway_subnet_key = string
+      nat_allocation_domain  = string
+    })
+
+    alb = object({
+      name                       = string
+      internal                   = bool
+      load_balancer_type         = string
+      ip_address_type            = string
+      idle_timeout               = number
+      enable_deletion_protection = bool
+      listener_port              = number
+      listener_protocol          = string
+      listener_certificate_arn   = string
+      listener_ssl_policy        = string
+      target_group_name          = string
+      target_port                = number
+      target_protocol            = string
+      target_type                = string
+      health_check_path          = string
+      health_check_matcher       = string
+      health_check_interval      = number
+      health_check_timeout       = number
+      healthy_threshold          = number
+      unhealthy_threshold        = number
+      ingress_rules = list(object({
+        description = string
+        from_port   = number
+        to_port     = number
+        protocol    = string
+        cidr_blocks = list(string)
+      }))
+    })
+
+    compute = object({
+      launch_template_name       = string
+      ami_id                     = string
+      instance_type              = string
+      key_name                   = string
+      associate_public_ip        = bool
+      monitoring_enabled         = bool
+      ebs_optimized              = bool
+      volume_device_name         = string
+      volume_size                = number
+      volume_type                = string
+      volume_delete_on_terminate = bool
+      volume_encrypted           = bool
+      asg_name                   = string
+      min_size                   = number
+      max_size                   = number
+      desired_capacity           = number
+      health_check_type          = string
+      health_check_grace_period  = number
+      app_port                   = number
+      app_protocol               = string
+    })
+
+    rds = object({
+      identifier              = string
+      engine                  = string
+      engine_version          = string
+      instance_class          = string
+      allocated_storage       = number
+      max_allocated_storage   = number
+      storage_type            = string
+      storage_encrypted       = bool
+      db_name                 = string
+      username                = string
+      port                    = number
+      multi_az                = bool
+      publicly_accessible     = bool
+      backup_retention_period = number
+      backup_window           = string
+      maintenance_window      = string
+      skip_final_snapshot     = bool
+      deletion_protection     = bool
+      apply_immediately       = bool
+    })
+
+    ecr = object({
+      repository_name      = string
+      image_tag_mutability = string
+      scan_on_push         = bool
+      force_delete         = bool
+    })
+
+    cloudflare = object({
+      enabled     = bool
+      zone_id     = string
+      record_name = string
+      proxied     = bool
+      ttl         = number
+    })
+  })
+}
+
+variable "rds_password" {
+  description = "Contraseña maestra de RDS. Debe suministrarse desde una fuente segura de variables."
   type        = string
   sensitive   = true
-  default     = null
 }
-
-variable "aws_secret_access_key" {
-  description = "IAM secret access key. AWS_SECRET_ACCESS_KEY"
-  type        = string
-  sensitive   = true
-  default     = null
-}
-
-# ------------------------------------------------
-
-# variables para instancias ec2 ---------------------
-
-variable "ec2_config" {
-  type = object({
-    ami_id = string
-    instance_type = string
-
-    #configuracion de almacenamiento de instancias
-    volume_size = number
-    volume_type = string
-  })
-
-}
-
-## tags para instancias ec2 -------------
-
-variable "common_tags" {
-  type = map(string)
-
-  default = {
-    "name" = "devops_lab"
-    "environment" = "test"
-    "owner" = "alejandrorodas003@gmail.com"
-    "team" = "Devops team"
-    "project" = "aws-deployment"
-  }
-}
-
-
-## ------------------------------------------------------
-
-# --------------------------------------------------
-
-# variables para VPC -------------------------
-variable "VPC_config" {
-  type = object({
-    cidr_block           = string
-    enable_dns_support   = bool
-    enable_dns_hostnames = bool
-  })
-
-  default = {
-    cidr_block           = "10.0.0.0/16"
-    enable_dns_support   = true
-    enable_dns_hostnames = true
-  }
-  
-}
-
-variable "subnet_publics_config" {
-  type = object({
-    cidr_block              = string
-    availability_zone       = string
-    map_public_ip_on_launch = bool
-  })
-
-  default= {
-    cidr_block              = "10.0.1.0/24"
-    availability_zone       = "us-east-1a"
-    map_public_ip_on_launch = true
- }
-  
-}
-# -------------------------------------------------
-# Security Groups ---------------------------------
-
-variable "security_groups_config_ssh" {
-  type = object({
-    from_port   = number
-    to_port     = number
-    protocol    = string
-    cidr_blocks = list(string)
-  })
-
-  default = {
-    from_port   = 22
-    to_port     = 22
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-variable "security_groups_config_HTTP" {
-  type = object({
-    from_port   = number
-    to_port     = number
-    protocol    = string
-    cidr_blocks = list(string)
-  })
-
-  default = {
-    from_port   = 80
-    to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-variable "security_groups_config_HTTPS" {
-  type = object({
-    from_port   = number
-    to_port     = number
-    protocol    = string
-    cidr_blocks = list(string)
-  })
-
-  default = {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-
-variable "security_groups_config_egress" {
-  type = object({
-    from_port   = number
-    to_port     = number
-    protocol    = string
-    cidr_blocks = list(string)
-  })
-
-  default = {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-}
-# -------------------------------------------------

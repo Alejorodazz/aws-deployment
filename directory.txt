@@ -1,0 +1,13 @@
+aws-deployment/
+|
+|--infraestructure/
+|   |
+|   |--environments/
+|       |
+|       |--production/
+|       |--testing/
+|   |
+|   |--modules/
+|      |--scripts/
+|      |   |--cloud-init.yml
+|      |--ficheros.tf   #Toda la infraestructura en AWS

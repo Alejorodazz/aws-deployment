@@ -124,15 +124,20 @@ Revise siempre el resultado de `terraform plan` antes de aplicar cambios. La eli
 terraform destroy -var-file="test.tfvars"
 ```
 
-## CI/CD: objetivo
+## CI/CD de produccion
 
-El directorio `.github/workflows/` contiene los puntos de partida para los pipelines:
+El workflow `.github/workflows/deploy-env-production.yml` valida el formato y la configuracion Terraform en cada pull request que modifica infraestructura. Un `push` a `master` crea un plan y aplica exactamente ese plan en el entorno protegido de GitHub `production`.
 
-- `CI.yml` se ejecuta en `push` y `pull_request` sobre `master`, pero actualmente solo imprime mensajes de ejemplo.
-- `infraestructure.yml` esta vacio.
-- `deploy-production.yml` es un placeholder.
+El job de despliegue usa OIDC para asumir un rol AWS temporal. Configure estos secretos en el entorno de GitHub `production`:
 
-La implementacion esperada es un pipeline que ejecute `terraform fmt -check`, `terraform validate` y `terraform plan` en cambios de infraestructura; que requiera aprobacion antes de `terraform apply` en produccion; y que tome las credenciales desde GitHub Secrets u OIDC, nunca desde archivos `.tfvars` versionados.
+- `AWS_DEPLOY_ROLE_ARN`: ARN del rol de AWS que GitHub Actions puede asumir mediante OIDC.
+- `PRODUCTION_TFVARS`: contenido completo del archivo `prod.tfvars`.
+- `TF_STATE_BUCKET`: nombre del bucket S3 del estado remoto.
+- `TF_STATE_LOCK_TABLE`: tabla DynamoDB para bloquear el estado.
+
+Antes del primer despliegue, cree el backend S3 y migre el estado de produccion desde una estacion de trabajo confiable. Use la misma configuracion definida en el workflow y confirme el estado remoto con `terraform state list`. Cuando la migracion este verificada, cree la variable de entorno de GitHub `PRODUCTION_STATE_READY` con el valor `true`. Hasta entonces, el workflow bloquea el `apply`.
+
+Configure tambien revisores requeridos en el entorno `production` de GitHub. La aprobacion se gestiona en la configuracion del entorno, no en el archivo YAML.
 
 ## Provisionamiento con cloud-init
 
@@ -140,7 +145,6 @@ El proyecto no utilizara Bash scripting para el aprovisionamiento. Toda la confi
 
 ## Consideraciones antes de produccion
 
-- El estado de Terraform se mantiene localmente; falta configurar un backend remoto con bloqueo de estado.
 - Las reglas de SSH permiten acceso desde `0.0.0.0/0`; deben restringirse a redes o rangos autorizados.
 - Los entornos comparten varios valores de red y seguridad; falta parametrizarlos y diferenciarlos de forma efectiva por ambiente.
 - La configuracion de volumen se declara en las variables, pero el recurso EC2 aun no la aplica.
@@ -148,8 +152,8 @@ El proyecto no utilizara Bash scripting para el aprovisionamiento. Toda la confi
 
 ## Proximos pasos
 
-1. Corregir y validar la configuracion Terraform de ambos ambientes.
-2. Configurar backend remoto y autenticacion AWS segura.
+1. Migrar el estado local de produccion al backend S3 y configurar los secretos del entorno GitHub.
+2. Configurar el rol OIDC de AWS con permisos minimos para los recursos administrados.
 3. Ampliar y validar los ficheros YAML de `cloud-init` segun las necesidades de cada ambiente.
 4. Implementar validacion de Terraform y de los YAML en pull requests.
 5. Crear un despliegue productivo con aprobacion y control de cambios.

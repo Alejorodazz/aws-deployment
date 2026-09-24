@@ -1,5 +1,7 @@
-module "server-production" {
+module "infrastructure" {
   source = "../../modules"
- 
- ec2_config = var.ec2_config_prod
+
+  aws_region            = var.aws_region
+  infrastructure_config = var.infrastructure_config
+  rds_password          = var.rds_password
 }
