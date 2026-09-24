@@ -1,0 +1,236 @@
+{
+  "version": "31.4.5",
+  "pages": [
+    {
+      "id": "W2y9efzBzAgTmbaccIQH",
+      "name": "Página-1",
+      "cells": [
+        {
+          "id": "1",
+          "type": "layer"
+        },
+        {
+          "id": "h5H4cr8oVrMzVnhOGXrj-3",
+          "type": "node",
+          "parent": "1",
+          "label": "VPC"
+        },
+        {
+          "id": "h5H4cr8oVrMzVnhOGXrj-4",
+          "type": "node",
+          "parent": "h5H4cr8oVrMzVnhOGXrj-3",
+          "label": "Private subnet a"
+        },
+        {
+          "id": "WtGzJS0uf_gKGppj5dSL-11",
+          "type": "node",
+          "parent": "h5H4cr8oVrMzVnhOGXrj-4"
+        },
+        {
+          "id": "WtGzJS0uf_gKGppj5dSL-24",
+          "type": "node",
+          "parent": "h5H4cr8oVrMzVnhOGXrj-4",
+          "label": "Auto Scaling group"
+        },
+        {
+          "id": "h5H4cr8oVrMzVnhOGXrj-5",
+          "type": "node",
+          "parent": "h5H4cr8oVrMzVnhOGXrj-3",
+          "label": "Public subnet"
+        },
+        {
+          "id": "XNsCPChbd8WYrRPhCxTN-2",
+          "type": "node",
+          "parent": "h5H4cr8oVrMzVnhOGXrj-3",
+          "label": "Public subnet"
+        },
+        {
+          "id": "XNsCPChbd8WYrRPhCxTN-14",
+          "type": "node",
+          "parent": "h5H4cr8oVrMzVnhOGXrj-3",
+          "label": "Private subnet db a"
+        },
+        {
+          "id": "XNsCPChbd8WYrRPhCxTN-15",
+          "type": "node",
+          "parent": "XNsCPChbd8WYrRPhCxTN-14"
+        },
+        {
+          "id": "WtGzJS0uf_gKGppj5dSL-25",
+          "type": "node",
+          "parent": "XNsCPChbd8WYrRPhCxTN-14",
+          "label": "Primary DB"
+        },
+        {
+          "id": "WtGzJS0uf_gKGppj5dSL-1",
+          "type": "node",
+          "parent": "h5H4cr8oVrMzVnhOGXrj-3",
+          "label": "Private subnet db b"
+        },
+        {
+          "id": "WtGzJS0uf_gKGppj5dSL-2",
+          "type": "node",
+          "parent": "WtGzJS0uf_gKGppj5dSL-1"
+        },
+        {
+          "id": "WtGzJS0uf_gKGppj5dSL-26",
+          "type": "node",
+          "parent": "WtGzJS0uf_gKGppj5dSL-1",
+          "label": "Backup DB"
+        },
+        {
+          "id": "WtGzJS0uf_gKGppj5dSL-9",
+          "type": "node",
+          "parent": "h5H4cr8oVrMzVnhOGXrj-3",
+          "label": "Private subnet b"
+        },
+        {
+          "id": "WtGzJS0uf_gKGppj5dSL-12",
+          "type": "node",
+          "parent": "WtGzJS0uf_gKGppj5dSL-9"
+        },
+        {
+          "id": "WtGzJS0uf_gKGppj5dSL-14",
+          "type": "edge",
+          "parent": "h5H4cr8oVrMzVnhOGXrj-3",
+          "source": "h5H4cr8oVrMzVnhOGXrj-5",
+          "target": "WtGzJS0uf_gKGppj5dSL-11"
+        },
+        {
+          "id": "WtGzJS0uf_gKGppj5dSL-16",
+          "type": "edge",
+          "parent": "h5H4cr8oVrMzVnhOGXrj-3",
+          "source": "WtGzJS0uf_gKGppj5dSL-11",
+          "target": "XNsCPChbd8WYrRPhCxTN-15"
+        },
+        {
+          "id": "WtGzJS0uf_gKGppj5dSL-17",
+          "type": "edge",
+          "parent": "h5H4cr8oVrMzVnhOGXrj-3",
+          "source": "WtGzJS0uf_gKGppj5dSL-12",
+          "target": "WtGzJS0uf_gKGppj5dSL-2"
+        },
+        {
+          "id": "WtGzJS0uf_gKGppj5dSL-15",
+          "type": "edge",
+          "parent": "h5H4cr8oVrMzVnhOGXrj-3",
+          "source": "XNsCPChbd8WYrRPhCxTN-2",
+          "target": "WtGzJS0uf_gKGppj5dSL-12"
+        },
+        {
+          "id": "0Bxr_8yuc1P-nhneEiVr-4",
+          "type": "edge",
+          "parent": "1",
+          "source": "0Bxr_8yuc1P-nhneEiVr-2",
+          "target": "0Bxr_8yuc1P-nhneEiVr-3"
+        },
+        {
+          "id": "0Bxr_8yuc1P-nhneEiVr-2",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "XNsCPChbd8WYrRPhCxTN-23",
+          "type": "edge",
+          "parent": "1",
+          "source": "0Bxr_8yuc1P-nhneEiVr-3",
+          "target": "h5H4cr8oVrMzVnhOGXrj-6"
+        },
+        {
+          "id": "0Bxr_8yuc1P-nhneEiVr-3",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "0Bxr_8yuc1P-nhneEiVr-12",
+          "type": "node",
+          "parent": "1",
+          "label": "TRAFICO POR HTTPS"
+        },
+        {
+          "id": "XNsCPChbd8WYrRPhCxTN-38",
+          "type": "node",
+          "parent": "1",
+          "label": "TRAFICO POR HTTPS"
+        },
+        {
+          "id": "0Bxr_8yuc1P-nhneEiVr-20",
+          "type": "node",
+          "parent": "1",
+          "label": "BALANCEADOR DE CARGAS POR ROUND ROBING"
+        },
+        {
+          "id": "0Bxr_8yuc1P-nhneEiVr-13",
+          "type": "node",
+          "parent": "1",
+          "label": "USER"
+        },
+        {
+          "id": "0Bxr_8yuc1P-nhneEiVr-14",
+          "type": "node",
+          "parent": "1",
+          "label": "DOMINIO ADMNISTRADO POR CLOUFLARE"
+        },
+        {
+          "id": "0Bxr_8yuc1P-nhneEiVr-15",
+          "type": "node",
+          "parent": "1",
+          "label": "DNS DE LOAD BALANCER AGREGADO A RECORDS DNS EN DOMINIO EN CLOUDFLARE COMO CNAME"
+        },
+        {
+          "id": "XNsCPChbd8WYrRPhCxTN-1",
+          "type": "node",
+          "parent": "1",
+          "label": "UN RDS CON MYSQL GESTIONANDO LOS REQUEST DE LA APP"
+        },
+        {
+          "id": "0Bxr_8yuc1P-nhneEiVr-19",
+          "type": "node",
+          "parent": "1",
+          "label": "AUTO SCALING GROUPS CON MÁXIMO DE 4 INSTANCIAS T3 SMALL Y MÍNIMO DE 2 INSTANCIAS"
+        },
+        {
+          "id": "XNsCPChbd8WYrRPhCxTN-68",
+          "type": "node",
+          "parent": "1",
+          "label": "ECR para acceder a mis dockerfile apps versionados"
+        },
+        {
+          "id": "XNsCPChbd8WYrRPhCxTN-53",
+          "type": "edge",
+          "parent": "1",
+          "source": "h5H4cr8oVrMzVnhOGXrj-6"
+        },
+        {
+          "id": "XNsCPChbd8WYrRPhCxTN-54",
+          "type": "edge",
+          "parent": "1",
+          "source": "h5H4cr8oVrMzVnhOGXrj-6"
+        },
+        {
+          "id": "h5H4cr8oVrMzVnhOGXrj-6",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "XNsCPChbd8WYrRPhCxTN-60",
+          "type": "node",
+          "parent": "1"
+        },
+        {
+          "id": "WtGzJS0uf_gKGppj5dSL-20",
+          "type": "edge",
+          "parent": "1",
+          "source": "WtGzJS0uf_gKGppj5dSL-11"
+        },
+        {
+          "id": "WtGzJS0uf_gKGppj5dSL-21",
+          "type": "edge",
+          "parent": "1",
+          "source": "WtGzJS0uf_gKGppj5dSL-12",
+          "target": "XNsCPChbd8WYrRPhCxTN-60"
+        }
+      ]
+    }
+  ]
+}
