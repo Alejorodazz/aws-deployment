@@ -74,7 +74,6 @@ variable "infrastructure_config" {
       launch_template_name       = string
       ami_id                     = string
       instance_type              = string
-      key_name                   = string
       associate_public_ip        = bool
       monitoring_enabled         = bool
       ebs_optimized              = bool
@@ -91,6 +90,12 @@ variable "infrastructure_config" {
       health_check_grace_period  = number
       app_port                   = number
       app_protocol               = string
+    })
+
+    ssm = object({
+      role_name             = string
+      instance_profile_name = string
+      managed_policy_arn    = string
     })
 
     rds = object({

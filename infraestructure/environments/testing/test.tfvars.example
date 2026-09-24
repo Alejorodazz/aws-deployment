@@ -57,7 +57,7 @@ infrastructure_config = {
     healthy_threshold          = 2
     unhealthy_threshold        = 2
     ingress_rules = [
-      { description = "HTTP desde Internet", from_port = 80, to_port = 80, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }
+      { description = "HTTPS desde Internet", from_port = 443, to_port = 443, protocol = "tcp", cidr_blocks = ["0.0.0.0/0"] }
     ]
   }
 
@@ -65,7 +65,6 @@ infrastructure_config = {
     launch_template_name       = "demo-test-template"
     ami_id                     = "ami-052355af2a014bd2c"
     instance_type              = "t3.small"
-    key_name                   = "replace-with-existing-key-pair"
     associate_public_ip        = false
     monitoring_enabled         = true
     ebs_optimized              = true
@@ -82,6 +81,12 @@ infrastructure_config = {
     health_check_grace_period  = 300
     app_port                   = 80
     app_protocol               = "tcp"
+  }
+
+  ssm = {
+    role_name             = "demo-test-ssm-role"
+    instance_profile_name = "demo-test-ssm-profile"
+    managed_policy_arn    = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
   }
 
   rds = {

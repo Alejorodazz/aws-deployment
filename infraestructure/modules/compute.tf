@@ -2,9 +2,12 @@ resource "aws_launch_template" "server_demo" {
   name                   = var.infrastructure_config.compute.launch_template_name
   image_id               = var.infrastructure_config.compute.ami_id
   instance_type          = var.infrastructure_config.compute.instance_type
-  key_name               = var.infrastructure_config.compute.key_name
   ebs_optimized          = var.infrastructure_config.compute.ebs_optimized
   update_default_version = true
+
+  iam_instance_profile {
+    name = aws_iam_instance_profile.ssm.name
+  }
 
   monitoring {
     enabled = var.infrastructure_config.compute.monitoring_enabled

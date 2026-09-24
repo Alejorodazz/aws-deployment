@@ -1,106 +1,130 @@
 # AWS Deployment
 
-Proyecto de automatizacion para aprovisionar una instancia web en AWS. La base actual utiliza Terraform para definir infraestructura y `cloud-init` con ficheros YAML para configurar la instancia EC2. El objetivo es completar este flujo con pipelines CI/CD.
+Infraestructura AWS declarativa y operativa para una aplicacion web altamente disponible. El proyecto usa Terraform para crear la plataforma, `cloud-init` en YAML para configurar las instancias y GitHub Actions para validar y desplegar produccion.
 
-## Objetivo del proyecto
+## Objetivo
 
-Construir un proceso reproducible de despliegue que permita:
-
-- Aprovisionar infraestructura AWS con Infraestructura como Codigo (IaC).
-- Mantener configuraciones separadas para `testing` y `production`.
-- Configurar una instancia Ubuntu de forma automatica.
-- Validar y desplegar los cambios desde GitHub Actions.
-- Centralizar el bootstrap del servidor en ficheros YAML de `cloud-init`.
+- Mantener una plataforma AWS reproducible para `testing` y `production`.
+- Ejecutar la aplicacion en instancias privadas administradas por Auto Scaling.
+- Exponer el servicio mediante un Application Load Balancer (ALB).
+- Persistir los datos en Amazon RDS MySQL sin exposicion publica.
+- Publicar y escanear imagenes de aplicacion en Amazon ECR.
+- Opcionalmente administrar un CNAME de Cloudflare hacia el ALB.
+- Automatizar la configuracion de Ubuntu exclusivamente con ficheros YAML de `cloud-init`.
 
 ## Estado actual
 
-Actualizado: 1 de septiembre de 2026.
+Actualizado: 24 de septiembre de 2026.
 
 | Componente | Estado | Implementacion actual |
 | --- | --- | --- |
-| IaC | Implementado | Terraform modular para red, seguridad, clave SSH e instancia EC2. |
-| Ambientes | Implementado parcialmente | Existen composiciones para `testing` y `production`. |
-| Bootstrap | Implementado | `cloud-init` instala paquetes, crea un usuario administrador y habilita Nginx. |
-| Provisionamiento | Implementado | La configuracion del servidor se define con `cloud-init` en ficheros YAML. |
-| CI/CD | Pendiente | Los workflows existen, pero aun no validan ni despliegan infraestructura. |
-| Estado remoto y secretos | Pendiente | El backend remoto y la gestion segura de secretos no estan configurados. |
+| IaC | Operativo | Modulo Terraform reutilizable con AWS, Cloudflare y cloud-init. |
+| Ambientes | Operativo | Entradas separadas para `testing` y `production`, con ejemplos `.tfvars`. |
+| Red | Operativo | VPC, dos subredes por capa, Internet Gateway, NAT Gateway y rutas publicas y privadas. |
+| Aplicacion | Operativo | ALB, Launch Template y Auto Scaling Group en subredes privadas. |
+| Datos | Operativo | RDS MySQL con subredes privadas, cifrado y acceso solo desde la capa de aplicacion. |
+| Imagenes | Operativo | Repositorio ECR con etiquetas inmutables y escaneo al publicar. |
+| Cloudflare | Operativo | Registro CNAME condicional administrado por Terraform. |
+| Provisionamiento | Operativo | `cloud-init.yml` instala Docker y Nginx, y prepara el usuario `admin`. |
+| CI/CD de produccion | Implementado | Validacion en pull requests y plan/apply en `master` con OIDC y entorno protegido. |
+| Estado remoto | Configurado | Produccion declara backend S3 y el workflow recibe su configuracion mediante secretos. |
 
-## Infraestructura implementada
+## Resultado final
 
-El modulo ubicado en `infraestructure/modules/` crea los siguientes recursos en AWS:
+La infraestructura se encuentra desplegada y funcional. El estado Terraform del ambiente `testing` confirma la creacion de la VPC, seis subredes en dos zonas de disponibilidad, Internet Gateway, NAT Gateway, ALB, Target Group, Launch Template, Auto Scaling Group, RDS MySQL, ECR, grupos de seguridad y el registro Cloudflare.
 
-- VPC con soporte DNS habilitado.
-- Subred publica, Internet Gateway y tabla de rutas publica.
-- Security Group con entrada para SSH (22), HTTP (80) y HTTPS (443).
-- Key Pair de EC2 a partir de `server_demo.key.pub`.
-- Instancia EC2 con IP publica.
-- Outputs de IP publica, tipo de instancia y CIDR de la VPC.
-
-La configuracion inicial de la EC2 se entrega mediante `user_data_base64` y el archivo [cloud-init.yaml](</C:/Users/Usuario/APISYS/PROYECTOS DE INFRAESTRUCTURA/aws-deployment/infraestructure/modules/scripts/cloud-init.yaml>). En una imagen Ubuntu, este instala herramientas base, Docker, Git y Nginx; crea el usuario `admin`; y habilita y reinicia el servicio Nginx.
+Las instancias de aplicacion no reciben trafico directo desde Internet: el ALB distribuye las solicitudes hacia el Auto Scaling Group y la base de datos solo acepta conexiones MySQL desde la capa de aplicacion.
 
 ## Arquitectura cloud
 
-La siguiente maqueta representa la arquitectura creada por el modulo Terraform para cada ambiente. El trafico web entra desde Internet hacia la instancia EC2 ubicada en una subred publica; `cloud-init` completa la configuracion de Ubuntu al iniciar la instancia.
+Cada ambiente define una VPC distribuida en dos zonas de disponibilidad: una capa publica para el ALB y el NAT Gateway, una capa privada para la aplicacion y una capa privada para datos.
 
 ```mermaid
 flowchart LR
-    user[Usuario o administrador]
-    internet((Internet))
-    key[Clave publica SSH]
-    cloudinit[cloud-init YAML]
+    user[Usuario]
+    cf[Cloudflare DNS opcional]
+    ecr[Amazon ECR]
 
     subgraph aws[AWS]
-        subgraph vpc[VPC 10.0.0.0/16]
-            igw[Internet Gateway]
-            routes[Tabla de rutas publica]
+        igw[Internet Gateway]
 
-            subgraph subnet[Subred publica 10.0.1.0/24]
-                sg[Security Group\nSSH 22 - HTTP 80 - HTTPS 443]
-                ec2[EC2 server_demo\nUbuntu + Nginx + Docker]
+        subgraph vpc[VPC]
+            subgraph public[Subredes publicas - 2 AZ]
+                alb[Application Load Balancer]
+                nat[NAT Gateway]
+            end
+
+            subgraph app[Subredes privadas de aplicacion - 2 AZ]
+                asg[Auto Scaling Group\nEC2 Ubuntu, Docker y Nginx]
+            end
+
+            subgraph data[Subredes privadas de datos - 2 AZ]
+                rds[Amazon RDS MySQL\nMulti-AZ]
             end
         end
     end
 
-    user -->|SSH 22| internet
-    internet -->|HTTP 80 / HTTPS 443| igw
-    igw --> routes
-    routes --> sg
-    sg --> ec2
-    key -. autentica acceso SSH .-> ec2
-    cloudinit -. user_data al iniciar .-> ec2
+    user --> cf
+    cf -. CNAME opcional .-> alb
+    user -->|trafico web| igw
+    igw --> alb
+    alb -->|HTTP 80| asg
+    asg -->|MySQL 3306| rds
+    asg -. salida a Internet .-> nat
+    asg -. imagenes de aplicacion .-> ecr
 ```
 
-El Security Group permite actualmente SSH, HTTP y HTTPS desde Internet. Esta apertura debe restringirse antes de utilizar el entorno como produccion.
+Los grupos de seguridad aplican una separacion por capas: el ALB recibe trafico definido por ambiente, las instancias solo aceptan trafico de aplicacion desde el ALB y RDS solo admite MySQL desde las instancias de aplicacion.
 
-## Ambientes
+## Recursos desplegados
 
-| Ambiente | Punto de entrada | Variables de ejemplo |
-| --- | --- | --- |
-| Testing | `infraestructure/environments/testing/main.tf` | `test.tefvars.example` |
-| Production | `infraestructure/environments/production/main.tf` | `prod.tfvars.example` |
+- VPC con DNS habilitado.
+- Dos subredes publicas, dos privadas de aplicacion y dos privadas de datos.
+- Internet Gateway, Elastic IP, NAT Gateway y tablas de rutas por capa.
+- Application Load Balancer, Target Group y listener HTTPS.
+- Launch Template y Auto Scaling Group con capacidad configurable.
+- Repositorio Amazon ECR con escaneo al publicar e imagenes inmutables.
+- Instancia Amazon RDS MySQL en subredes privadas, con cifrado y Multi-AZ configurables.
+- Regla CNAME en Cloudflare, creada solo cuando `cloudflare.enabled = true`.
 
-Cada ambiente invoca el modulo comun y define su configuracion de instancia mediante un objeto que contiene AMI, tipo y parametros de volumen. Los ejemplos de variables son plantillas: deben copiarse a un archivo `.tfvars` ignorado por Git y adaptarse al ambiente.
-
-## Estructura
+## Ambientes y estructura
 
 ```text
 .
-|-- .github/workflows/                 # Definiciones iniciales de GitHub Actions
+|-- .github/workflows/deploy-env-production.yml  # Validacion y despliegue productivo
 |-- infraestructure/
 |   |-- environments/
-|   |   |-- production/                 # Composicion Terraform de produccion
-|   |   `-- testing/                    # Composicion Terraform de pruebas
-|   `-- modules/                        # Recursos AWS reutilizables y cloud-init
-|       `-- scripts/cloud-init.yaml     # Bootstrap de Ubuntu
-|-- server_demo.key.pub                 # Clave publica para EC2 (local, no versionada)
+|   |   |-- production/                          # Entrada Terraform y backend S3
+|   |   `-- testing/                             # Entrada Terraform para pruebas
+|   |-- modules/                                 # Recursos AWS, Cloudflare y cloud-init
+|   |   `-- scripts/cloud-init.yml               # Bootstrap declarativo de Ubuntu
+|   `-- terraform.sh                             # Comando local para Terraform
+|-- .env.example                                 # Variables locales de Cloudflare
 `-- README.md
 ```
 
-## Uso de Terraform
+| Ambiente | Directorio | Configuracion de ejemplo | Backend |
+| --- | --- | --- | --- |
+| Testing | `infraestructure/environments/testing` | `test.tfvars.example` | Local |
+| Production | `infraestructure/environments/production` | `prod.tfvars.example` | S3 |
 
-Prerequisitos: Terraform instalado, una cuenta AWS con permisos para crear los recursos descritos y credenciales disponibles mediante `AWS_ACCESS_KEY_ID` y `AWS_SECRET_ACCESS_KEY`. La clave publica `server_demo.key.pub` debe estar disponible en la raiz del proyecto.
+## Provisionamiento con cloud-init
 
-Ejemplo para `testing`:
+El proyecto no usa Bash scripting para aprovisionar instancias. El archivo [cloud-init.yml](</C:/Users/Usuario/APISYS/PROYECTOS%20DE%20INFRAESTRUCTURA/aws-deployment/infraestructure/modules/scripts/cloud-init.yml>) se incorpora al Launch Template como `user_data` y realiza lo siguiente:
+
+- Actualiza los paquetes del sistema.
+- Instala `ca-certificates`, `curl`, Docker y Nginx.
+- Crea el usuario administrativo `admin` con privilegios `sudo`.
+- Habilita Docker y Nginx al inicio de la instancia.
+
+`infraestructure/terraform.sh` es una utilidad local para ejecutar comandos Terraform; no forma parte del aprovisionamiento de las EC2.
+
+## Uso local
+
+Requisitos: Terraform 1.5 o superior, credenciales AWS configuradas localmente, una Key Pair existente en AWS, una contraseña segura de RDS y, si se activa Cloudflare, un `CLOUDFLARE_API_TOKEN` en `.env`.
+
+1. Copie el archivo de ejemplo del ambiente a un archivo `.tfvars` no versionado y sustituya los placeholders.
+2. Para pruebas, ejecute:
 
 ```bash
 cd infraestructure/environments/testing
@@ -109,51 +133,42 @@ terraform plan -var-file="test.tfvars"
 terraform apply -var-file="test.tfvars"
 ```
 
-Ejemplo para `production`:
+3. Para produccion, inicialice el backend S3 con sus valores reales antes de planificar:
 
 ```bash
 cd infraestructure/environments/production
-terraform init
+terraform init \
+  -backend-config="bucket=<bucket-de-estado>" \
+  -backend-config="key=production/terraform.tfstate" \
+  -backend-config="region=us-east-1" \
+  -backend-config="dynamodb_table=<tabla-de-bloqueo>" \
+  -backend-config="encrypt=true"
 terraform plan -var-file="prod.tfvars"
-terraform apply -var-file="prod.tfvars"
 ```
 
-Revise siempre el resultado de `terraform plan` antes de aplicar cambios. La eliminacion de recursos debe ejecutarse de forma explicita y solo cuando corresponda:
-
-```bash
-terraform destroy -var-file="test.tfvars"
-```
+Tambien puede usar `infraestructure/terraform.sh <testing|production> <init|validate|plan|apply|destroy> [archivo.tfvars]`. Revise siempre `terraform plan` antes de ejecutar un `apply` o `destroy`.
 
 ## CI/CD de produccion
 
-El workflow `.github/workflows/deploy-env-production.yml` valida el formato y la configuracion Terraform en cada pull request que modifica infraestructura. Un `push` a `master` crea un plan y aplica exactamente ese plan en el entorno protegido de GitHub `production`.
+El workflow [deploy-env-production.yml](</C:/Users/Usuario/APISYS/PROYECTOS%20DE%20INFRAESTRUCTURA/aws-deployment/.github/workflows/deploy-env-production.yml>) se activa para cambios de infraestructura:
 
-El job de despliegue usa OIDC para asumir un rol AWS temporal. Configure estos secretos en el entorno de GitHub `production`:
+- En pull requests, ejecuta `terraform fmt -check`, `terraform init -backend=false` y `terraform validate` sobre produccion.
+- En un `push` a `master`, crea un plan y aplica exactamente ese plan en el entorno protegido `production`.
+- Usa OIDC para asumir un rol temporal de AWS; no requiere claves AWS de larga duracion en GitHub.
+- Impide el `apply` hasta que la variable del entorno `PRODUCTION_STATE_READY` sea `true`.
 
-- `AWS_DEPLOY_ROLE_ARN`: ARN del rol de AWS que GitHub Actions puede asumir mediante OIDC.
-- `PRODUCTION_TFVARS`: contenido completo del archivo `prod.tfvars`.
-- `TF_STATE_BUCKET`: nombre del bucket S3 del estado remoto.
-- `TF_STATE_LOCK_TABLE`: tabla DynamoDB para bloquear el estado.
+Configure estos secretos en el entorno GitHub `production`:
 
-Antes del primer despliegue, cree el backend S3 y migre el estado de produccion desde una estacion de trabajo confiable. Use la misma configuracion definida en el workflow y confirme el estado remoto con `terraform state list`. Cuando la migracion este verificada, cree la variable de entorno de GitHub `PRODUCTION_STATE_READY` con el valor `true`. Hasta entonces, el workflow bloquea el `apply`.
+- `AWS_DEPLOY_ROLE_ARN`
+- `PRODUCTION_TFVARS`
+- `TF_STATE_BUCKET`
+- `TF_STATE_LOCK_TABLE`
 
-Configure tambien revisores requeridos en el entorno `production` de GitHub. La aprobacion se gestiona en la configuracion del entorno, no en el archivo YAML.
+Configure revisores requeridos para el entorno `production` y migre primero el estado local al backend S3. El workflow no realiza esa migracion automaticamente.
 
-## Provisionamiento con cloud-init
+## Operacion continua
 
-El proyecto no utilizara Bash scripting para el aprovisionamiento. Toda la configuracion de las instancias se mantendra en ficheros YAML de `cloud-init` dentro de `infraestructure/modules/scripts/`. Esta estrategia concentra la definicion del sistema operativo, paquetes, usuarios y servicios en artefactos declarativos y versionados junto con la infraestructura.
-
-## Consideraciones antes de produccion
-
-- Las reglas de SSH permiten acceso desde `0.0.0.0/0`; deben restringirse a redes o rangos autorizados.
-- Los entornos comparten varios valores de red y seguridad; falta parametrizarlos y diferenciarlos de forma efectiva por ambiente.
-- La configuracion de volumen se declara en las variables, pero el recurso EC2 aun no la aplica.
-- Antes de automatizar despliegues, deben corregirse y validarse las rutas de la clave publica y toda la configuracion con `terraform validate` y `terraform plan`.
-
-## Proximos pasos
-
-1. Migrar el estado local de produccion al backend S3 y configurar los secretos del entorno GitHub.
-2. Configurar el rol OIDC de AWS con permisos minimos para los recursos administrados.
-3. Ampliar y validar los ficheros YAML de `cloud-init` segun las necesidades de cada ambiente.
-4. Implementar validacion de Terraform y de los YAML en pull requests.
-5. Crear un despliegue productivo con aprobacion y control de cambios.
+- Use `terraform plan` antes de cada cambio y aplique solo planes revisados.
+- Mantenga `rds_password`, credenciales de Cloudflare y configuracion del backend fuera del control de versiones.
+- Realice los despliegues de produccion desde el workflow protegido para conservar la aprobacion y la autenticacion OIDC.
+- Mantenga actualizados los ficheros YAML de `cloud-init` para que las nuevas instancias del Auto Scaling Group conserven la configuracion esperada.
