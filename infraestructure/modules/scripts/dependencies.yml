@@ -8,15 +8,12 @@ packages:
   - ca-certificates
   - curl
   - docker.io
-  - nginx
+  - git
 
 runcmd:
   - systemctl disable --now ssh
   - systemctl enable --now amazon-ssm-agent
   - systemctl enable docker
   - systemctl start docker
-  - systemctl enable nginx
-  - systemctl restart nginx
-  - nginx -t
 
 final_message: "cloud-init completed after $UPTIME seconds."
